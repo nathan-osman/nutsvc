@@ -21,8 +21,8 @@ func New(l *logger.Logger) (*Service, error) {
 }
 
 func (s *Service) Execute(args []string, chChan <-chan svc.ChangeRequest, stChan chan<- svc.Status) (bool, uint32) {
-	s.logger.Info(logger.EventServiceStatus, "event loop started")
-	defer s.logger.Info(logger.EventServiceStatus, "event loop stopped")
+	defer s.logger.Info(logger.EventServiceStatus, "service stopped")
+	s.logger.Info(logger.EventServiceStatus, "service started")
 
 	// Indicate that the service has been started
 	stChan <- svc.Status{
