@@ -63,6 +63,9 @@ func serviceCommand(command string) error {
 	defer s.Close()
 	switch command {
 	case "remove":
+		if err := eventlog.Remove(serviceName); err != nil {
+			return err
+		}
 		return s.Delete()
 	case "start":
 		return s.Start()
