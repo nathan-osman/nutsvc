@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/nathan-osman/nutsvc/logger"
 	"github.com/nathan-osman/nutsvc/service"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/windows/svc"
@@ -13,6 +14,7 @@ import (
 )
 
 const (
+	serviceName = "nutsvc"
 	displayName = "NUT Service"
 	description = "Monitor a NUT endpoint for changes"
 )
@@ -28,7 +30,7 @@ func installService() error {
 		return err
 	}
 	s, err := m.CreateService(
-		service.Name,
+		serviceName,
 		p,
 		mgr.Config{
 			StartType:   mgr.StartAutomatic,
@@ -41,7 +43,7 @@ func installService() error {
 	}
 	defer s.Close()
 	return eventlog.InstallAsEventCreate(
-		service.Name,
+		serviceName,
 		eventlog.Error|eventlog.Warning|eventlog.Info,
 	)
 }
@@ -52,7 +54,7 @@ func serviceCommand(command string) error {
 		return err
 	}
 	defer m.Disconnect()
-	s, err := m.OpenService(service.Name)
+	s, err := m.OpenService(serviceName)
 	if err != nil {
 		return err
 	}
@@ -112,14 +114,21 @@ func main() {
 				return errors.New("nutsvc must be run as a Windows service")
 			}
 
+			// Create the logger
+			l, err := logger.New(serviceName)
+			if err != nil {
+				return err
+			}
+			defer l.Close()
+
 			// Create the service
-			s, err := service.New()
+			s, err := service.New(l)
 			if err != nil {
 				return err
 			}
 
 			// Run the service
-			return svc.Run(service.Name, s)
+			return svc.Run(serviceName, s)
 		},
 	}
 	if err := app.Run(os.Args); err != nil {

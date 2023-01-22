@@ -1,39 +1,28 @@
 package service
 
 import (
+	"github.com/nathan-osman/nutsvc/logger"
 	"golang.org/x/sys/windows/svc"
-	"golang.org/x/sys/windows/svc/eventlog"
-)
-
-const (
-	// Name identifies the service within the SCM.
-	Name = "nutsvc"
-
-	EventServiceStatus = 1
 )
 
 // Service monitors for UPS state changes.
 type Service struct {
-	log      *eventlog.Log
+	logger   *logger.Logger
 	stopChan chan any
 }
 
 // New creates a new Service instance.
-func New() (*Service, error) {
-	e, err := eventlog.Open(Name)
-	if err != nil {
-		return nil, err
-	}
+func New(l *logger.Logger) (*Service, error) {
 	s := &Service{
-		log:      e,
+		logger:   l,
 		stopChan: make(chan any),
 	}
 	return s, nil
 }
 
 func (s *Service) Execute(args []string, chChan <-chan svc.ChangeRequest, stChan chan<- svc.Status) (bool, uint32) {
-	s.log.Info(EventServiceStatus, "event loop started")
-	defer s.log.Info(EventServiceStatus, "event loop stopped")
+	s.logger.Info(logger.EventServiceStatus, "event loop started")
+	defer s.logger.Info(logger.EventServiceStatus, "event loop stopped")
 
 	// Indicate that the service has been started
 	stChan <- svc.Status{
