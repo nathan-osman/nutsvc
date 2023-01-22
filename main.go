@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
+	"github.com/nathan-osman/nutsvc/service"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/eventlog"
@@ -11,7 +13,6 @@ import (
 )
 
 const (
-	serviceName = "nutsvc"
 	displayName = "NUT Service"
 	description = "Monitor a NUT endpoint for changes"
 )
@@ -27,7 +28,7 @@ func installService() error {
 		return err
 	}
 	s, err := m.CreateService(
-		serviceName,
+		service.Name,
 		p,
 		mgr.Config{
 			StartType:   mgr.StartAutomatic,
@@ -40,7 +41,7 @@ func installService() error {
 	}
 	defer s.Close()
 	return eventlog.InstallAsEventCreate(
-		serviceName,
+		service.Name,
 		eventlog.Error|eventlog.Warning|eventlog.Info,
 	)
 }
@@ -51,7 +52,7 @@ func serviceCommand(command string) error {
 		return err
 	}
 	defer m.Disconnect()
-	s, err := m.OpenService(serviceName)
+	s, err := m.OpenService(service.Name)
 	if err != nil {
 		return err
 	}
@@ -103,9 +104,22 @@ func main() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			//...
 
-			return nil
+			// Application cannot be run interactively
+			if i, err := svc.IsWindowsService(); err != nil {
+				return err
+			} else if !i {
+				return errors.New("nutsvc must be run as a Windows service")
+			}
+
+			// Create the service
+			s, err := service.New()
+			if err != nil {
+				return err
+			}
+
+			// Run the service
+			return svc.Run(service.Name, s)
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
