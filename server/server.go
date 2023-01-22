@@ -19,7 +19,7 @@ type Server struct {
 }
 
 // New creates a new server instance.
-func New(l *logger.Logger) (*Server, error) {
+func New(l *logger.Logger) *Server {
 	var (
 		m = http.NewServeMux()
 		s = &Server{
@@ -37,7 +37,7 @@ func New(l *logger.Logger) (*Server, error) {
 			s.logger.Error(logger.EventServerStatus, err.Error())
 		}
 	}()
-	return s, nil
+	return s
 }
 
 // Close shuts down the server.

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/nathan-osman/nutsvc/logger"
+	"github.com/nathan-osman/nutsvc/server"
 	"github.com/nathan-osman/nutsvc/service"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/windows/svc"
@@ -122,13 +123,14 @@ func main() {
 			defer l.Close()
 
 			// Create the service
-			s, err := service.New(l)
-			if err != nil {
-				return err
-			}
+			sInstance := service.New(l)
+
+			// Create the server
+			srv := server.New(l)
+			defer srv.Close()
 
 			// Run the service
-			return svc.Run(serviceName, s)
+			return svc.Run(serviceName, sInstance)
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
