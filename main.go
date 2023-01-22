@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/nathan-osman/nutsvc/conf"
 	"github.com/nathan-osman/nutsvc/logger"
 	"github.com/nathan-osman/nutsvc/server"
 	"github.com/nathan-osman/nutsvc/service"
@@ -106,7 +107,7 @@ func main() {
 				},
 			},
 		},
-		Action: func(c *cli.Context) error {
+		Action: func(*cli.Context) error {
 
 			// Application cannot be run interactively
 			if i, err := svc.IsWindowsService(); err != nil {
@@ -121,6 +122,13 @@ func main() {
 				return err
 			}
 			defer l.Close()
+
+			// Create the conf instance
+			c, err := conf.New()
+			if err != nil {
+				return err
+			}
+			defer c.Close()
 
 			// Create the service
 			sInstance := service.New(l)
