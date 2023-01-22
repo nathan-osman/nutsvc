@@ -133,15 +133,12 @@ func main() {
 			}
 			defer c.Close()
 
-			// Create the service
-			sInstance := service.New(l)
-
 			// Create the server
-			srv := server.New(l)
-			defer srv.Close()
+			s := server.New(l)
+			defer s.Close()
 
 			// Run the service
-			return svc.Run(serviceName, sInstance)
+			return svc.Run(serviceName, service.New(l))
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
