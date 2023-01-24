@@ -131,7 +131,6 @@ func main() {
 			if err != nil {
 				return err
 			}
-			defer c.Close()
 
 			// Create the server
 			s := server.New(l)

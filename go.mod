@@ -3,7 +3,8 @@ module github.com/nathan-osman/nutsvc
 go 1.18
 
 require (
-	github.com/urfave/cli/v2 v2.23.7
+	github.com/hectane/go-acl v0.0.0-20230122075934-ca0b05cb1adb
+	github.com/urfave/cli/v2 v2.24.1
 	golang.org/x/sys v0.4.0
 )
 

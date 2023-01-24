@@ -1,50 +1,87 @@
 package conf
 
 import (
+	"encoding/json"
 	"errors"
+	"os"
+	"path"
+	"sync"
 
-	"golang.org/x/sys/windows/registry"
+	"github.com/hectane/go-acl"
 )
 
-// Conf provides a simple means for reading / writing registry values.
+var ErrKeyNotFound = errors.New("key was not found")
+
+// Conf provides a means for reading / writing persistent values to disk in a
+// way that keeps the data secure. All methods are considered thread-safe.
 type Conf struct {
-	key registry.Key
+	mutex    sync.RWMutex
+	filename string
+	values   map[string]string
 }
 
-// New  creates a new Conf instance.
+func (c *Conf) load() error {
+	f, err := os.Open(c.filename)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	defer f.Close()
+	return json.NewDecoder(f).Decode(&c.values)
+}
+
+func (c *Conf) save() error {
+	f, err := os.Create(c.filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if err := acl.Chmod(c.filename, 0600); err != nil {
+		return err
+	}
+	return json.NewEncoder(f).Encode(&c.values)
+}
+
+// New creates a new Conf instance.
 func New() (*Conf, error) {
-	k, _, err := registry.CreateKey(
-		registry.LOCAL_MACHINE,
-		`SOFTWARE\nutsvc`,
-		registry.ALL_ACCESS,
-	)
+	e, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
-	return &Conf{
-		key: k,
-	}, nil
+	c := &Conf{
+		filename: path.Join(path.Dir(e), "conf.json"),
+	}
+	if err := c.load(); err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
-// Get returns the data for the specified value, returning the provided default
-// if it is not present.
-func (c *Conf) Get(name, def string) (string, error) {
-	v, _, err := c.key.GetStringValue(name)
-	if err != nil {
-		if errors.Is(err, registry.ErrNotExist) {
-			return def, nil
-		}
-		return "", err
+// Get attempts to return the value for the specified key. If the key is not
+// found, ErrKeyNotFound is returned.
+func (c *Conf) Get(key string) (string, error) {
+	defer c.mutex.RUnlock()
+	c.mutex.RLock()
+	if v, ok := c.values[key]; ok {
+		return v, nil
+	} else {
+		return "", ErrKeyNotFound
 	}
-	return v, nil
+}
+
+// SetMultiple merges the specified map of keys/values.
+func (c *Conf) SetMultiple(changes map[string]string) error {
+	defer c.mutex.Unlock()
+	c.mutex.Lock()
+	for k, v := range changes {
+		c.values[k] = v
+	}
+	return c.save()
 }
 
 // Set changes the value of the specified key.
-func (c *Conf) Set(name, data string) error {
-	return c.key.SetStringValue(name, data)
-}
-
-// Close frees all of the resources used by the Conf.
-func (c *Conf) Close() {
-	c.key.Close()
+func (c *Conf) Set(key, value string) error {
+	return c.SetMultiple(map[string]string{key: value})
 }
