@@ -7,6 +7,7 @@ import (
 const (
 	EventServiceStatus = 1
 	EventServerStatus  = 2
+	EventMonitorStatus = 3
 )
 
 // Logger provides a central source for recording log messages.

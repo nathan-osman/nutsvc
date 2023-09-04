@@ -133,7 +133,7 @@ func main() {
 			}
 
 			// Create the server
-			s := server.New(l)
+			s := server.New(l, c)
 			defer s.Close()
 
 			// Run the service

@@ -52,6 +52,7 @@ func New() (*Conf, error) {
 	}
 	c := &Conf{
 		filename: path.Join(path.Dir(e), "conf.json"),
+		values:   make(map[string]string),
 	}
 	if err := c.load(); err != nil {
 		return nil, err
@@ -69,6 +70,17 @@ func (c *Conf) Get(key string) (string, error) {
 	} else {
 		return "", ErrKeyNotFound
 	}
+}
+
+// GetAll returns all of the currently stored values.
+func (c *Conf) GetAll() map[string]string {
+	defer c.mutex.Unlock()
+	c.mutex.Lock()
+	m := make(map[string]string)
+	for k, v := range c.values {
+		m[k] = v
+	}
+	return m
 }
 
 // SetMultiple merges the specified map of keys/values.
