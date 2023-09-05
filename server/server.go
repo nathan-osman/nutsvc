@@ -41,7 +41,7 @@ func (s *Server) tryReloadConf() error {
 		if err != nil {
 			return err
 		}
-		s.monitor = monitor.New(s.logger, a, n)
+		s.monitor = monitor.New(s.logger, s.conf, a, n)
 		return nil
 	}()
 	if err != nil {
