@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/hectane/go-acl v0.0.0-20230122075934-ca0b05cb1adb
-	github.com/nathan-osman/nutclient v1.0.0
+	github.com/nathan-osman/nutclient v1.0.1
 	github.com/urfave/cli/v2 v2.25.7
 	golang.org/x/sys v0.12.0
 )
