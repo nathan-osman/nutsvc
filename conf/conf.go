@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path"
+	"strconv"
 	"sync"
 
 	"github.com/hectane/go-acl"
@@ -70,6 +71,15 @@ func (c *Conf) Get(key string) (string, error) {
 	} else {
 		return "", ErrKeyNotFound
 	}
+}
+
+// GetInt attempts to load the value of the specified key as an integer.
+func (c *Conf) GetInt(key string) (int, error) {
+	v, err := c.Get(key)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(v)
 }
 
 // GetAll returns all of the currently stored values.
