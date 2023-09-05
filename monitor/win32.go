@@ -1,20 +1,15 @@
 package monitor
 
 import (
-	"unsafe"
-
 	"golang.org/x/sys/windows"
 )
 
 var (
-	advapi32 = windows.MustLoadDLL("Advapi32.dll")
 	powrprof = windows.MustLoadDLL("PowrProf.dll")
 
-	procInitiateSystemShutdownExW = advapi32.MustFindProc("InitiateSystemShutdownExW")
-	procSetSuspendState           = powrprof.MustFindProc("SetSuspendState")
+	procSetSuspendState = powrprof.MustFindProc("SetSuspendState")
 
-	constSHTDN_REASON_MAJOR_POWER       = 0x00060000
-	constSHTDN_REASON_MINOR_ENVIRONMENT = 0x0000000c
+	constSE_SHUTDOWN_NAME = windows.StringToUTF16Ptr("SeShutdownPrivilege")
 )
 
 func boolToInt(v bool) int {
@@ -22,27 +17,6 @@ func boolToInt(v bool) int {
 		return 1
 	}
 	return 0
-}
-
-func fnInitiateSystemShutdown(
-	machineName, message string,
-	timeout int,
-	forceAppsClosed bool,
-	rebootAfterShutdown bool,
-	reason int,
-) error {
-	ret, _, err := procInitiateSystemShutdownExW.Call(
-		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(machineName))),
-		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(message))),
-		uintptr(timeout),
-		uintptr(boolToInt(forceAppsClosed)),
-		uintptr(boolToInt(rebootAfterShutdown)),
-		uintptr(reason),
-	)
-	if ret == 0 {
-		return err
-	}
-	return nil
 }
 
 func fnSetSuspendState(
@@ -58,4 +32,62 @@ func fnSetSuspendState(
 		return err
 	}
 	return nil
+}
+
+func shutdown() error {
+
+	// Get the current process token
+	var token windows.Token
+	if err := windows.OpenProcessToken(
+		windows.CurrentProcess(),
+		windows.TOKEN_ADJUST_PRIVILEGES|windows.TOKEN_QUERY,
+		&token,
+	); err != nil {
+		return err
+	}
+
+	// Get the LUID for the shutdown privilege
+	tkp := windows.Tokenprivileges{}
+	if err := windows.LookupPrivilegeValue(
+		nil,
+		constSE_SHUTDOWN_NAME,
+		&tkp.Privileges[0].Luid,
+	); err != nil {
+		return err
+	}
+	tkp.PrivilegeCount = 1
+	tkp.Privileges[0].Attributes = windows.SE_PRIVILEGE_ENABLED
+
+	// Get the shutdown privilege
+	if err := windows.AdjustTokenPrivileges(
+		token,
+		false,
+		&tkp,
+		0,
+		nil,
+		nil,
+	); err != nil {
+		return err
+	}
+
+	// Initiate the shutdown
+	if err := windows.InitiateSystemShutdownEx(
+		windows.StringToUTF16Ptr(""),
+		windows.StringToUTF16Ptr("UPS power lost"),
+		0,
+		true,
+		false,
+		windows.SHTDN_REASON_MAJOR_POWER|windows.SHTDN_REASON_MINOR_ENVIRONMENT,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func hibernate() error {
+	return fnSetSuspendState(
+		true,
+		true,
+	)
 }

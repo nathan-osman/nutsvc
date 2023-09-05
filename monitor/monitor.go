@@ -61,21 +61,22 @@ func (m *Monitor) doAction() {
 	)
 
 	// Perform the action
+	var apiErr error
 	switch v {
 	case ActionShutdown:
-		fnInitiateSystemShutdown(
-			"",
-			"UPS power lost",
-			0,
-			true,
-			false,
-			constSHTDN_REASON_MAJOR_POWER|
-				constSHTDN_REASON_MINOR_ENVIRONMENT,
-		)
+		apiErr = shutdown()
 	case ActionHibernate:
-		fnSetSuspendState(
-			true,
-			true,
+		apiErr = hibernate()
+	}
+
+	// Log an error if something went wrong
+	if apiErr != nil {
+		m.logger.Error(
+			logger.EventMonitorStatus,
+			fmt.Sprintf(
+				"error performing action: %s",
+				err.Error(),
+			),
 		)
 	}
 }
